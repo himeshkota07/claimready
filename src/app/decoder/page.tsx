@@ -123,6 +123,13 @@ export default function DecoderPage() {
             </span>
           </div>
 
+          {result.source === "fallback" && result.language !== "en" && (
+            <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              Hindi/Kannada output needs a live OpenAI key — the offline fallback below is
+              English-only regardless of the language selected.
+            </p>
+          )}
+
           <p className="mt-3 text-slate-800">{result.plainReason}</p>
 
           <p className="mt-4 inline-block rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">

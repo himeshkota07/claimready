@@ -48,6 +48,12 @@ export default function MockedPage() {
                 : "It is not configured on this deployment right now, so every AI-shaped feature below is running its deterministic fallback template instead — the UI labels every response with which one ran."}
             </strong>
           </li>
+          <li>
+            The Hindi/Kannada language toggle on the rejection decoder only actually translates
+            when a live OpenAI key is configured. Without one, it returns English regardless of
+            the language selected, and the page says so inline rather than silently
+            mistranslating.
+          </li>
         </ul>
       </Section>
 
