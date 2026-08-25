@@ -105,6 +105,17 @@ export default function GuidedClaimPage() {
             className="mt-1 w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
           />
           <p className="mt-1 text-xs text-slate-400">Mock documents only — nothing here should be a real ID.</p>
+          <p className="mt-1 text-xs text-slate-500">
+            Don&apos;t have one handy? Try a sample:{" "}
+            <a href="/mock-documents/uan-card-ramesh-sinha.png" download className="text-blue-700 underline">
+              UAN card
+            </a>{" "}
+            or{" "}
+            <a href="/mock-documents/passbook-arjun-mehta.png" download className="text-blue-700 underline">
+              passbook
+            </a>
+            . Both are synthetic, watermarked test documents — download, then upload it back here.
+          </p>
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}

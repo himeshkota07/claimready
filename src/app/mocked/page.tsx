@@ -88,7 +88,12 @@ export default function MockedPage() {
             configured, any image you upload returns the same fixed mock extraction — it is not
             reading your file. With a key configured, it genuinely runs vision extraction on
             whatever image is uploaded, but still against a mock passbook/UAN-card format, not a
-            live EPFO document store.
+            live EPFO document store. Since real IDs are off-limits, the{" "}
+            <a href="/claim" className="underline">
+              guided claim
+            </a>{" "}
+            page links two synthetic, watermarked sample documents so anyone testing this build
+            has something legitimate to upload.
           </li>
           <li>
             <strong>Nothing here submits a real claim.</strong> This tool ends at &quot;here is
