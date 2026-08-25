@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractDocumentFields } from "@/lib/ai";
+import { checkAiRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const MAX_DATA_URL_LENGTH = 6_000_000; // ~4.5MB image, base64-inflated
 
 export async function POST(req: NextRequest) {
+  const rateLimit = checkAiRateLimit(getClientIp(req), "extract");
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
+
   const body = await req.json().catch(() => null);
   const imageDataUrl = typeof body?.imageDataUrl === "string" ? body.imageDataUrl : "";
 

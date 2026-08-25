@@ -45,6 +45,12 @@ export default function GuidedClaimPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
+      if (intakeRes.status === 429) {
+        const data = await intakeRes.json().catch(() => null);
+        const wait = data?.retryAfterSeconds ? ` Try again in about ${data.retryAfterSeconds}s.` : "";
+        setError(`This demo is getting a lot of requests right now.${wait}`);
+        return;
+      }
       if (!intakeRes.ok) throw new Error("intake failed");
       setIntake(await intakeRes.json());
 

@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodeRejection } from "@/lib/ai";
 import { Language } from "@/lib/types";
+import { checkAiRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  const rateLimit = checkAiRateLimit(getClientIp(req), "decode");
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
+
   const body = await req.json().catch(() => null);
   const rawText = typeof body?.rawText === "string" ? body.rawText.trim() : "";
   const language: Language = ["en", "hi", "kn"].includes(body?.language) ? body.language : "en";

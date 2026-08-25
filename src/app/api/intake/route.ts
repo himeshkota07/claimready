@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { classifyIntake } from "@/lib/ai";
+import { checkAiRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  const rateLimit = checkAiRateLimit(getClientIp(req), "intake");
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
+
   const body = await req.json().catch(() => null);
   const text = typeof body?.text === "string" ? body.text.trim() : "";
 

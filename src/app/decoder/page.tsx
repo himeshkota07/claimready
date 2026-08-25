@@ -37,6 +37,12 @@ export default function DecoderPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rawText: text, language }),
       });
+      if (res.status === 429) {
+        const data = await res.json().catch(() => null);
+        const wait = data?.retryAfterSeconds ? ` Try again in about ${data.retryAfterSeconds}s.` : "";
+        setError(`This demo is getting a lot of requests right now.${wait}`);
+        return;
+      }
       if (!res.ok) throw new Error("Request failed");
       const data = (await res.json()) as DecodeResponse;
       setResult(data);
