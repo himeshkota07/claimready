@@ -14,6 +14,15 @@ const FORM_LABELS: Record<string, string> = {
 type IntakeResponse = IntakeClassification & { source: "openai" | "fallback" };
 type ExtractResponse = ExtractedDocFields & { source: "openai" | "fallback" };
 
+const CLARIFYING_PROMPTS = [
+  "I've left my job for good and want my full PF balance",
+  "I need money for medical treatment",
+  "I need money for my child's education",
+  "I need money for a wedding in the family",
+  "I'm buying or building a house",
+  "I want my pension withdrawn as a lump sum",
+];
+
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -31,19 +40,18 @@ export default function GuidedClaimPage() {
   const [extraction, setExtraction] = useState<ExtractResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!text.trim()) return;
+  async function runIntake(situationText: string, includeFile: boolean) {
+    if (!situationText.trim()) return;
     setLoading(true);
     setError(null);
     setIntake(null);
-    setExtraction(null);
+    if (!includeFile) setExtraction(null);
 
     try {
       const intakeRes = await fetch("/api/intake", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text: situationText }),
       });
       if (intakeRes.status === 429) {
         const data = await intakeRes.json().catch(() => null);
@@ -54,7 +62,7 @@ export default function GuidedClaimPage() {
       if (!intakeRes.ok) throw new Error("intake failed");
       setIntake(await intakeRes.json());
 
-      if (file) {
+      if (includeFile && file) {
         const dataUrl = await fileToDataUrl(file);
         const extractRes = await fetch("/api/extract", {
           method: "POST",
@@ -68,6 +76,16 @@ export default function GuidedClaimPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    runIntake(text, true);
+  }
+
+  function handleClarify(prompt: string) {
+    setText(prompt);
+    runIntake(prompt, true);
   }
 
   return (
@@ -144,6 +162,26 @@ export default function GuidedClaimPage() {
           <p className="mt-3 text-xs text-slate-400">
             {intake.source === "openai" ? "Classified by OpenAI model" : "Offline fallback template (no API key configured)"}
           </p>
+
+          {intake.formGuess === "unclear" && (
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              <p className="text-sm font-medium text-slate-700">
+                Which of these is closest to your situation?
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {CLARIFYING_PROMPTS.map((prompt) => (
+                  <button
+                    key={prompt}
+                    onClick={() => handleClarify(prompt)}
+                    disabled={loading}
+                    className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs text-slate-700 transition hover:border-blue-400 hover:text-blue-700 disabled:opacity-50"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -168,11 +206,12 @@ export default function GuidedClaimPage() {
         </div>
       )}
 
-      {intake && intake.formGuess !== "unclear" && (
+      {intake && (
         <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-5">
           <p className="text-sm text-blue-900">
-            Next, run a pre-flight check to make sure this claim won&apos;t bounce back before you
-            submit it.
+            {intake.formGuess === "unclear"
+              ? "Pick one of the options above for a specific form match, or run a pre-flight check now — it works off your actual EPFO record, so it doesn't need a guessed form type to check your eligibility and flag issues."
+              : "Next, run a pre-flight check to make sure this claim won't bounce back before you submit it."}
           </p>
           <Link
             href="/preflight"
