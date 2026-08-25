@@ -54,6 +54,16 @@ export default function MockedPage() {
             the language selected, and the page says so inline rather than silently
             mistranslating.
           </li>
+          <li>
+            <strong>API credit protection has two layers.</strong> Every OpenAI-backed route
+            (decode, intake, extract) has an in-memory request limiter — but Vercel runs each
+            route on serverless functions that don&apos;t reliably share memory across requests,
+            so in a single always-on process it works exactly as intended (8 requests/minute per
+            visitor, verified), while on Vercel it&apos;s best-effort, not a guarantee. The real
+            backstop is a hard monthly spending cap set directly on the OpenAI account — that one
+            holds regardless of how many function instances Vercel spins up, and this app already
+            falls back to its deterministic templates gracefully if the cap is ever hit.
+          </li>
         </ul>
       </Section>
 

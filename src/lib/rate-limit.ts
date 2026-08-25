@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 
 // Best-effort in-memory rate limit for the OpenAI-backed routes.
-// State lives per serverless instance — it resets on a cold start and isn't
-// shared across instances, so it won't stop a distributed abuser. What it
-// does stop: a single reviewer's browser, script, or accidental retry loop
-// from burning through the OpenAI budget mid-judging (see risk register in
-// claimready-master-doc.md — "API key exposure / credit drain").
+// State lives per serverless instance and is NOT shared across instances.
+// Verified locally against a single persistent process: works exactly as
+// specified (8 req/min/IP, 60 req/min global). Verified against the Vercel
+// deployment: since consecutive requests can land on different function
+// instances, this alone is not a reliable production guard. The actual
+// credit-drain backstop (see risk register in claimready-master-doc.md —
+// "API key exposure / credit drain") is a hard spending cap set on the
+// OpenAI account itself, which holds regardless of instance behavior. This
+// limiter is kept as defense-in-depth for whatever traffic does land on a
+// warm instance, and because request throttling is good practice regardless.
 
 interface Bucket {
   timestamps: number[];
