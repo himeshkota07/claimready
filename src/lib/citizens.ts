@@ -1,9 +1,10 @@
 import { CitizenProfile } from "./types";
+import { generateSyntheticCitizens } from "./citizen-generator";
 
-// Five fictional citizen profiles, one per failure mode (Section 6 of the plan doc).
+// Five hand-authored "flagship" profiles, one per failure mode called out in
+// the plan doc — kept exact and referenced by UAN in the README/demo script.
 // All data synthetic. No real Aadhaar/PAN/bank numbers used anywhere.
-
-export const CITIZENS: CitizenProfile[] = [
+const FLAGSHIP_CITIZENS: CitizenProfile[] = [
   {
     id: "citizen-a",
     label: "Citizen A",
@@ -25,10 +26,11 @@ export const CITIZENS: CitizenProfile[] = [
       aadhaarLinked: true,
       aadhaarVerified: true,
       panLinked: true,
-      bankAccountNumber: "XXXXXXXX4521",
+      bankAccountNumber: "91100024521",
       bankIfsc: "SBIN0001234",
       bankSeeded: true,
       epsMemberSince: "2014-06-01",
+      mobile: "9800XXXX21",
     },
   },
   {
@@ -52,10 +54,11 @@ export const CITIZENS: CitizenProfile[] = [
       aadhaarLinked: true,
       aadhaarVerified: true,
       panLinked: true,
-      bankAccountNumber: "XXXXXXXX7788",
+      bankAccountNumber: "91100037788",
       bankIfsc: "SBIN1001234", // invalid: 5th character must be a literal "0"
       bankSeeded: false,
       epsMemberSince: "2016-02-10",
+      mobile: "9711XXXX88",
     },
   },
   {
@@ -79,10 +82,11 @@ export const CITIZENS: CitizenProfile[] = [
       aadhaarLinked: true,
       aadhaarVerified: true,
       panLinked: true,
-      bankAccountNumber: "XXXXXXXX3390",
+      bankAccountNumber: "91100053390",
       bankIfsc: "HDFC0002233",
       bankSeeded: true,
       epsMemberSince: "2012-08-01",
+      mobile: "9900XXXX90",
     },
   },
   {
@@ -106,10 +110,11 @@ export const CITIZENS: CitizenProfile[] = [
       aadhaarLinked: false,
       aadhaarVerified: false,
       panLinked: false,
-      bankAccountNumber: "XXXXXXXX5567",
+      bankAccountNumber: "91100065567",
       bankIfsc: "ICIC0004455",
       bankSeeded: false,
       epsMemberSince: "2018-03-01",
+      mobile: "9822XXXX67",
     },
   },
   {
@@ -133,13 +138,25 @@ export const CITIZENS: CitizenProfile[] = [
       aadhaarLinked: true,
       aadhaarVerified: true,
       panLinked: true,
-      bankAccountNumber: "XXXXXXXX9012",
+      bankAccountNumber: "91100079012",
       bankIfsc: "ICIC0001122",
       bankSeeded: true,
       epsMemberSince: "2015-01-12",
+      mobile: "9911XXXX05",
     },
   },
 ];
+
+// Seed is fixed so the generated pool is stable across builds/deploys —
+// a real "database" for the demo, not a fresh shuffle every page load.
+const SYNTHETIC_SEED = 20260823;
+const SYNTHETIC_COUNT = 45;
+
+export const SYNTHETIC_CITIZENS: CitizenProfile[] = generateSyntheticCitizens(SYNTHETIC_COUNT, SYNTHETIC_SEED);
+
+export const CITIZENS: CitizenProfile[] = [...FLAGSHIP_CITIZENS, ...SYNTHETIC_CITIZENS];
+
+export const FEATURED_UANS = FLAGSHIP_CITIZENS.map((c) => c.uan);
 
 export function getCitizenByUanAndPassword(
   uan: string,
@@ -153,4 +170,12 @@ export function getCitizenByUanAndPassword(
 
 export function getCitizenByUan(uan: string): CitizenProfile | null {
   return CITIZENS.find((c) => c.uan === uan) ?? null;
+}
+
+export function searchCitizens(query: string, limit = 25): CitizenProfile[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return CITIZENS.slice(0, limit);
+  return CITIZENS.filter(
+    (c) => c.displayName.toLowerCase().includes(q) || c.uan.includes(q)
+  ).slice(0, limit);
 }

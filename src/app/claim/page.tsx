@@ -125,14 +125,18 @@ export default function GuidedClaimPage() {
           <p className="mt-1 text-xs text-slate-400">Mock documents only — nothing here should be a real ID.</p>
           <p className="mt-1 text-xs text-slate-500">
             Don&apos;t have one handy? Try a sample:{" "}
-            <a href="/mock-documents/uan-card-ramesh-sinha.png" download className="text-blue-700 underline">
+            <a href="/api/mock-documents/100200300401/uan-card.png" download className="text-blue-700 underline">
               UAN card
             </a>{" "}
             or{" "}
-            <a href="/mock-documents/passbook-arjun-mehta.png" download className="text-blue-700 underline">
+            <a href="/api/mock-documents/100200300405/passbook.png" download className="text-blue-700 underline">
               passbook
             </a>
-            . Both are synthetic, watermarked test documents — download, then upload it back here.
+            . Both are generated on the fly from the mock database (synthetic, watermarked) — or{" "}
+            <Link href="/preflight" className="text-blue-700 underline">
+              browse all 50 mock profiles
+            </Link>{" "}
+            and grab documents for any of them.
           </p>
         </div>
 

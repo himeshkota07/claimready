@@ -26,6 +26,7 @@ export interface EpfoRecord {
   bankIfsc: string;
   bankSeeded: boolean; // bank account KYC-approved by employer/field office
   epsMemberSince: string | null; // ISO date, null if not an EPS member
+  mobile: string; // registered mobile, partly masked — used on generated mock documents
 }
 
 export interface CitizenProfile {

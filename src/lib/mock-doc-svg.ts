@@ -1,27 +1,17 @@
-// One-off generator for synthetic demo documents used to test the guided-claim
-// upload/extraction flow. Not part of the app runtime — run manually:
-//   node scripts/generate-mock-docs.mjs
-// Every image is watermarked as a specimen; no real government or bank
-// branding is used anywhere, per the project's compliance rules.
-
-import sharp from "sharp";
-import { mkdirSync } from "fs";
-import { fileURLToPath } from "url";
-import path from "path";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const OUT_DIR = path.join(__dirname, "..", "public", "mock-documents");
-mkdirSync(OUT_DIR, { recursive: true });
+// Builds the SVG markup for synthetic demo documents (UAN card, PF passbook
+// first page). Rendered to PNG on request by /api/mock-documents/[uan]/[type]
+// — every citizen in the mock database gets real, downloadable documents
+// generated from their own record, not a fixed set of pre-made images.
 
 const WIDTH = 900;
 const HEIGHT = 560;
 
-function escapeXml(s) {
+function escapeXml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function watermark() {
-  const lines = [];
+function watermark(): string {
+  const lines: string[] = [];
   for (let y = -100; y < HEIGHT + 100; y += 110) {
     lines.push(
       `<text x="${WIDTH / 2}" y="${y}" font-family="Arial, sans-serif" font-size="26" fill="#dc2626" fill-opacity="0.14" text-anchor="middle" transform="rotate(-24 ${WIDTH / 2} ${y})">SPECIMEN — SYNTHETIC DATA — NOT A REAL DOCUMENT</text>`
@@ -30,14 +20,14 @@ function watermark() {
   return lines.join("\n");
 }
 
-function field(label, value, x, y) {
+function field(label: string, value: string, x: number, y: number): string {
   return `
     <text x="${x}" y="${y}" font-family="Arial, sans-serif" font-size="13" fill="#64748b" letter-spacing="0.5">${escapeXml(label.toUpperCase())}</text>
     <text x="${x}" y="${y + 24}" font-family="Arial, sans-serif" font-size="22" fill="#0f172a" font-weight="600">${escapeXml(value)}</text>
   `;
 }
 
-function baseHeader(title, subtitle) {
+function baseHeader(title: string, subtitle: string): string {
   return `
     <rect width="${WIDTH}" height="${HEIGHT}" fill="#ffffff" />
     <rect x="0" y="0" width="${WIDTH}" height="90" fill="#1d4ed8" />
@@ -45,12 +35,13 @@ function baseHeader(title, subtitle) {
     <text x="36" y="66" font-family="Arial, sans-serif" font-size="14" fill="#dbeafe">${escapeXml(subtitle)}</text>
     <rect x="0" y="${HEIGHT - 46}" width="${WIDTH}" height="46" fill="#f1f5f9" />
     <text x="36" y="${HEIGHT - 18}" font-family="Arial, sans-serif" font-size="12" fill="#475569">
-      Fictional document created for the ClaimReady hackathon prototype. No real person, bank, or government record.
+      Fictional document generated for the ClaimReady hackathon prototype. No real person, bank, or government record.
     </text>
   `;
 }
 
-function uanCardSvg({ name, uan, dob, mobile }) {
+export function buildUanCardSvg(params: { name: string; uan: string; dob: string; mobile: string }): string {
+  const { name, uan, dob, mobile } = params;
   return `
   <svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
     ${baseHeader("EPFO-style UAN Card", "Universal Account Number — member identification (mock format)")}
@@ -63,7 +54,14 @@ function uanCardSvg({ name, uan, dob, mobile }) {
   </svg>`;
 }
 
-function passbookSvg({ name, accountNumber, ifsc, bankName, branch }) {
+export function buildPassbookSvg(params: {
+  name: string;
+  accountNumber: string;
+  ifsc: string;
+  bankName: string;
+  branch: string;
+}): string {
+  const { name, accountNumber, ifsc, bankName, branch } = params;
   return `
   <svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
     ${baseHeader("PF Passbook — First Page", "Bank account details on file (mock format)")}
@@ -76,43 +74,5 @@ function passbookSvg({ name, accountNumber, ifsc, bankName, branch }) {
   </svg>`;
 }
 
-const PEOPLE = [
-  {
-    slug: "ramesh-sinha",
-    name: "Ramesh Kumar Sinha",
-    uan: "100200300401",
-    dob: "12-04-1985",
-    mobile: "9800XXXX21",
-    accountNumber: "34521987001",
-    ifsc: "SBIN0001234",
-    bankName: "State Bank of India (mock)",
-    branch: "Koramangala Branch",
-  },
-  {
-    slug: "arjun-mehta",
-    name: "Arjun Mehta",
-    uan: "100200300405",
-    dob: "25-09-1991",
-    mobile: "9911XXXX05",
-    accountNumber: "88901234567",
-    ifsc: "ICIC0001122",
-    bankName: "ICICI Bank (mock)",
-    branch: "Indiranagar Branch",
-  },
-];
-
-async function main() {
-  for (const person of PEOPLE) {
-    const uanSvg = uanCardSvg(person);
-    const passbookSvg_ = passbookSvg(person);
-
-    await sharp(Buffer.from(uanSvg)).png().toFile(path.join(OUT_DIR, `uan-card-${person.slug}.png`));
-    await sharp(Buffer.from(passbookSvg_)).png().toFile(path.join(OUT_DIR, `passbook-${person.slug}.png`));
-    console.log(`Generated documents for ${person.name}`);
-  }
-}
-
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+export const DOC_IMAGE_WIDTH = WIDTH;
+export const DOC_IMAGE_HEIGHT = HEIGHT;

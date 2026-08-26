@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { aiIsConfigured } from "@/lib/ai";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -71,29 +72,47 @@ export default function MockedPage() {
         <ul className="list-disc space-y-2 pl-4">
           <li>
             <strong>Login is not real authentication.</strong> The &quot;UAN login&quot; on the
-            pre-flight check page matches against five fictional citizen profiles seeded in code.
-            No real UAN, password, or session exists anywhere.
+            pre-flight check page matches against a seeded mock database of 50 fictional citizen
+            profiles (5 hand-authored &quot;flagship&quot; cases, one per failure mode in the
+            project plan, plus 45 procedurally generated from a seeded random model — see{" "}
+            <Link href="/preflight" className="underline">
+              browse them here
+            </Link>
+            ). No real UAN, password, or session exists anywhere, and every account uses the same
+            demo password.
           </li>
           <li>
-            <strong>Every citizen record is synthetic.</strong> Names, dates, account numbers, and
-            IFSC codes are invented for this demo. No real Aadhaar, PAN, bank, or health data is
-            used anywhere in this project.
+            <strong>Every citizen record is synthetic, and randomly generated.</strong> The 45
+            generated profiles roll independent name-mismatch, invalid-IFSC, missing-KYC, and
+            unapproved-exit combinations from a fixed random seed — the deterministic rules engine
+            runs against whatever that generator produced, the same way it runs against the 5
+            hand-authored cases. Names, dates, account numbers, and IFSC codes are all invented.
+            No real Aadhaar, PAN, bank, or health data is used anywhere in this project.
           </li>
           <li>
-            <strong>There is no database.</strong> All records are plain seeded data in the
-            codebase. Nothing is written back or persisted.
+            <strong>There is no database in the persistence sense.</strong> The 50 records live in
+            an in-memory array generated at build/start time from a fixed seed — stable across
+            requests and deploys, but nothing is written back, and restarting the process doesn&apos;t
+            change any citizen&apos;s data (the seed is fixed) or lose it (nothing was saved to begin
+            with).
           </li>
           <li>
             <strong>Document upload does not verify a real ID.</strong> With no OpenAI key
             configured, any image you upload returns the same fixed mock extraction — it is not
             reading your file. With a key configured, it genuinely runs vision extraction on
             whatever image is uploaded, but still against a mock passbook/UAN-card format, not a
-            live EPFO document store. Since real IDs are off-limits, the{" "}
-            <a href="/claim" className="underline">
+            live EPFO document store. Since real IDs are off-limits,{" "}
+            <Link href="/claim" className="underline">
               guided claim
-            </a>{" "}
-            page links two synthetic, watermarked sample documents so anyone testing this build
-            has something legitimate to upload.
+            </Link>{" "}
+            and{" "}
+            <Link href="/preflight" className="underline">
+              pre-flight check
+            </Link>{" "}
+            both link to synthetic, watermarked sample documents — rendered on the fly, per
+            citizen, from that same mock database (not a fixed set of pre-made image files), so
+            anyone testing this build can pull a document for any of the 50 profiles and upload it
+            right back in.
           </li>
           <li>
             <strong>Nothing here submits a real claim.</strong> This tool ends at &quot;here is
