@@ -28,21 +28,20 @@ export async function GET(
   }
 
   const { record } = citizen;
-  const svg =
-    type === "uan-card"
-      ? buildUanCardSvg({
-          name: record.nameOnEpfo,
-          uan: record.uan,
-          dob: toDdMmYyyy(record.dob),
-          mobile: record.mobile,
-        })
-      : buildPassbookSvg({
-          name: record.nameOnBank,
-          accountNumber: record.bankAccountNumber,
-          ifsc: record.bankIfsc,
-          bankName: bankNameForIfsc(record.bankIfsc),
-          branch: branchForUan(record.uan),
-        });
+  const svg = await (type === "uan-card"
+    ? buildUanCardSvg({
+        name: record.nameOnEpfo,
+        uan: record.uan,
+        dob: toDdMmYyyy(record.dob),
+        mobile: record.mobile,
+      })
+    : buildPassbookSvg({
+        name: record.nameOnBank,
+        accountNumber: record.bankAccountNumber,
+        ifsc: record.bankIfsc,
+        bankName: bankNameForIfsc(record.bankIfsc),
+        branch: branchForUan(record.uan),
+      }));
 
   const png = await sharp(Buffer.from(svg)).png().toBuffer();
 
