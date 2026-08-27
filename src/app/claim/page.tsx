@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { IntakeClassification, ExtractedDocFields } from "@/lib/ai";
 import { getCitizenByUan } from "@/lib/citizens";
+import { ClaimForm } from "@/lib/types";
+import { ClaimFormPreview } from "@/components/ClaimFormPreview";
 
 const FORM_LABELS: Record<string, string> = {
   "19": "Form 19 — Final PF settlement",
@@ -12,8 +14,19 @@ const FORM_LABELS: Record<string, string> = {
   unclear: "Not sure yet",
 };
 
+const MAX_FILES = 3;
+
 type IntakeResponse = IntakeClassification & { source: "openai" | "fallback" };
 type ExtractResponse = ExtractedDocFields & { source: "openai" | "fallback" };
+
+interface MergedFields {
+  name: string | null;
+  uan: string | null;
+  accountNumber: string | null;
+  ifsc: string | null;
+  perFile: { fileName: string; documentType: string; source: "openai" | "fallback" }[];
+  anySource: "openai" | "fallback" | null;
+}
 
 const CLARIFYING_PROMPTS = [
   "I've left my job for good and want my full PF balance",
@@ -33,20 +46,36 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+// Two documents together (a UAN card for name/UAN, a passbook for account/IFSC)
+// give a complete field set; one alone only ever gives half. Merge takes the
+// first non-null value found per field, in upload order.
+function mergeExtractions(files: File[], results: ExtractResponse[]): MergedFields {
+  const merged: MergedFields = { name: null, uan: null, accountNumber: null, ifsc: null, perFile: [], anySource: null };
+  results.forEach((r, i) => {
+    merged.name ??= r.name;
+    merged.uan ??= r.uan;
+    merged.accountNumber ??= r.accountNumber;
+    merged.ifsc ??= r.ifsc;
+    if (merged.anySource === null || r.source === "openai") merged.anySource = r.source;
+    merged.perFile.push({ fileName: files[i]?.name ?? `document ${i + 1}`, documentType: r.documentType, source: r.source });
+  });
+  return merged;
+}
+
 export default function GuidedClaimPage() {
   const [text, setText] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [intake, setIntake] = useState<IntakeResponse | null>(null);
-  const [extraction, setExtraction] = useState<ExtractResponse | null>(null);
+  const [merged, setMerged] = useState<MergedFields | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function runIntake(situationText: string, includeFile: boolean) {
+  async function runIntake(situationText: string, includeFiles: boolean) {
     if (!situationText.trim()) return;
     setLoading(true);
     setError(null);
     setIntake(null);
-    if (!includeFile) setExtraction(null);
+    if (!includeFiles) setMerged(null);
 
     try {
       const intakeRes = await fetch("/api/intake", {
@@ -63,20 +92,31 @@ export default function GuidedClaimPage() {
       if (!intakeRes.ok) throw new Error("intake failed");
       setIntake(await intakeRes.json());
 
-      if (includeFile && file) {
-        const dataUrl = await fileToDataUrl(file);
-        const extractRes = await fetch("/api/extract", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageDataUrl: dataUrl }),
-        });
-        if (extractRes.ok) setExtraction(await extractRes.json());
+      if (includeFiles && files.length > 0) {
+        const results = await Promise.all(
+          files.map(async (file) => {
+            const dataUrl = await fileToDataUrl(file);
+            const res = await fetch("/api/extract", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ imageDataUrl: dataUrl }),
+            });
+            return res.ok ? ((await res.json()) as ExtractResponse) : null;
+          })
+        );
+        const ok = results.filter((r): r is ExtractResponse => r !== null);
+        if (ok.length > 0) setMerged(mergeExtractions(files, ok));
       }
     } catch {
       setError("Something went wrong. Try again in a moment.");
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const selected = Array.from(e.target.files ?? []).slice(0, MAX_FILES);
+    setFiles(selected);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -89,12 +129,16 @@ export default function GuidedClaimPage() {
     runIntake(prompt, true);
   }
 
+  const recognizedCitizen = merged?.uan ? getCitizenByUan(merged.uan) : null;
+  const previewFormType: ClaimForm | null =
+    intake && ["19", "10C", "31"].includes(intake.formGuess) ? (intake.formGuess as ClaimForm) : null;
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
       <h1 className="text-2xl font-bold text-slate-900">Guided claim</h1>
       <p className="mt-2 text-sm text-slate-600">
         Describe your situation in your own words — no form jargon needed. We&apos;ll work out
-        which claim form applies and start prefilling it from any document you upload.
+        which claim form applies and start prefilling it from any documents you upload.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4 rounded-md border border-slate-200 bg-white p-5">
@@ -114,22 +158,31 @@ export default function GuidedClaimPage() {
 
         <div>
           <label htmlFor="doc" className="block text-sm font-medium text-slate-700">
-            Upload a screenshot of your UAN card or passbook (optional)
+            Upload your UAN card and/or passbook (optional, up to {MAX_FILES})
           </label>
           <input
             id="doc"
             type="file"
             accept="image/*"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            multiple
+            onChange={handleFileChange}
             className="mt-1 w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
           />
-          <p className="mt-1 text-xs text-slate-400">Mock documents only — nothing here should be a real ID.</p>
+          {files.length > 0 && (
+            <p className="mt-1 text-xs text-slate-500">
+              {files.length} file{files.length > 1 ? "s" : ""} selected: {files.map((f) => f.name).join(", ")}
+            </p>
+          )}
+          <p className="mt-1 text-xs text-slate-400">
+            Mock documents only — nothing here should be a real ID. A UAN card alone only gives
+            your name and UAN; add a passbook too for your bank account and IFSC.
+          </p>
           <p className="mt-1 text-xs text-slate-500">
-            Don&apos;t have one handy? Try a sample:{" "}
+            Don&apos;t have any handy? Try both samples:{" "}
             <a href="/api/mock-documents/100200300401/uan-card.png" download className="text-brand-700 underline">
               UAN card
             </a>{" "}
-            or{" "}
+            and{" "}
             <a href="/api/mock-documents/100200300405/passbook.png" download className="text-brand-700 underline">
               passbook
             </a>
@@ -190,40 +243,50 @@ export default function GuidedClaimPage() {
         </div>
       )}
 
-      {extraction && (
+      {merged && (
         <div className="mt-4 rounded-md border border-slate-200 bg-white p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Prefilled from your document
+            Detected from your document{merged.perFile.length > 1 ? "s" : ""}
           </p>
-          <dl className="mt-2 grid grid-cols-2 gap-y-2 text-sm">
-            <dt className="text-slate-500">Name</dt>
-            <dd className="text-slate-900">{extraction.name ?? "Not detected"}</dd>
-            <dt className="text-slate-500">UAN</dt>
-            <dd className="text-slate-900">{extraction.uan ?? "Not detected"}</dd>
-            <dt className="text-slate-500">Account number</dt>
-            <dd className="text-slate-900">{extraction.accountNumber ?? "Not detected"}</dd>
-            <dt className="text-slate-500">IFSC</dt>
-            <dd className="text-slate-900">{extraction.ifsc ?? "Not detected"}</dd>
-          </dl>
-          <p className="mt-3 text-xs text-slate-400">
-            {extraction.source === "openai" ? "Extracted by OpenAI vision model" : "Offline fallback mock extraction (no API key configured)"}
-          </p>
+          <ul className="mt-1 space-y-0.5 text-xs text-slate-400">
+            {merged.perFile.map((f, i) => (
+              <li key={i}>
+                {f.fileName} — read as {f.documentType.replace("_", " ")} (
+                {f.source === "openai" ? "OpenAI vision" : "offline fallback"})
+              </li>
+            ))}
+          </ul>
 
-          {extraction.uan && getCitizenByUan(extraction.uan) && (
+          {recognizedCitizen && (
             <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-3">
               <p className="text-sm text-emerald-900">
-                This UAN matches a record in the mock database (
-                {getCitizenByUan(extraction.uan)!.displayName}) — skip the login and jump straight
-                to its pre-flight status.
+                This UAN matches a record in the mock database ({recognizedCitizen.displayName}) —
+                skip the login and jump straight to its pre-flight status.
               </p>
               <Link
-                href={`/preflight/${extraction.uan}`}
+                href={`/preflight/${merged.uan}`}
                 className="mt-2 inline-block rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
               >
                 View pre-flight status &rarr;
               </Link>
             </div>
           )}
+        </div>
+      )}
+
+      {previewFormType && (
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Prefilled form preview
+          </p>
+          <ClaimFormPreview
+            formType={previewFormType}
+            name={merged?.name ?? null}
+            uan={merged?.uan ?? null}
+            accountNumber={merged?.accountNumber ?? null}
+            ifsc={merged?.ifsc ?? null}
+            advanceCategory={intake?.detectedCategory ?? null}
+          />
         </div>
       )}
 
@@ -235,7 +298,7 @@ export default function GuidedClaimPage() {
               : "Next, run a pre-flight check to make sure this claim won't bounce back before you submit it."}
           </p>
           <Link
-            href={extraction?.uan ? `/preflight?uan=${extraction.uan}` : "/preflight"}
+            href={merged?.uan ? `/preflight?uan=${merged.uan}` : "/preflight"}
             className="mt-3 inline-block rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800"
           >
             Run pre-flight check &rarr;
