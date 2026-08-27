@@ -6,6 +6,7 @@
 
 import { AdvanceCategory, CitizenProfile, EpfoRecord, ClaimForm } from "./types";
 import { randomIfsc } from "./bank-lookup";
+import { runPreflightCheck } from "./rules-engine";
 
 const ADVANCE_CATEGORIES: AdvanceCategory[] = ["medical", "education", "marriage", "housing", "home_loan"];
 
@@ -78,6 +79,18 @@ function mangleName(rng: () => number, name: string): string {
   return [...parts.slice(0, -1), typoed].join(" ");
 }
 
+// Deliberately different in spelling/sound from anything in FIRST_NAMES, so
+// a substitution here always produces a genuine, reliably-low-scoring
+// mismatch rather than risking a coincidentally-similar name that the
+// fuzzy matcher forgives (e.g. "Rajesh" vs "Ramesh" still scores green).
+const DISTINCT_FIRST_NAMES = ["Farida", "Xavier", "Harpreet", "Tabassum"];
+
+function mismatchedNameFor(fullName: string): string {
+  const parts = fullName.split(" ");
+  const candidate = DISTINCT_FIRST_NAMES.find((n) => n.toLowerCase() !== parts[0].toLowerCase()) ?? "Farida";
+  return [candidate, ...parts.slice(1)].join(" ");
+}
+
 const ADVANCE_MIN_SERVICE_YEARS: Record<AdvanceCategory, number> = {
   medical: 0,
   education: 7,
@@ -108,6 +121,37 @@ function describeFailureMode(
   if (!record.bankSeeded) modes.push("bank KYC not seeded");
   if (modes.length === 0) return "Clean case — passes pre-flight";
   return modes.map((m) => m[0].toUpperCase() + m.slice(1)).join(", ");
+}
+
+// A single independent-probability failure is realistic on its own, but
+// leaving roughly a third of generated citizens at exactly one issue meant
+// a judge clicking through the demo had good odds of only ever seeing the
+// single-issue case and concluding that's the norm (it happened during
+// review). This tops up any citizen who landed at exactly one issue with a
+// second, correlated one. Deterministic given the citizen's own
+// already-rolled state -- no extra rng() draws, so it doesn't perturb the
+// seed stream for any other citizen. Citizens with zero issues (the "clean"
+// bucket, same role as flagship Citizen E) are left alone on purpose.
+function boostToSecondIssueIfSingleton(draft: CitizenProfile, now: Date): void {
+  if (runPreflightCheck(draft, now).issues.length !== 1) return;
+
+  const record = draft.record;
+  if (record.bankSeeded) {
+    record.bankSeeded = false;
+  } else if (record.aadhaarLinked && record.aadhaarVerified) {
+    record.aadhaarVerified = false;
+  } else if (record.nameOnBank === record.nameOnEpfo) {
+    record.nameOnBank = mismatchedNameFor(record.nameOnEpfo);
+  } else if (record.nameOnAadhaar === record.nameOnEpfo) {
+    record.nameOnAadhaar = mismatchedNameFor(record.nameOnEpfo);
+  } else if (/^[A-Z]{4}0[A-Z0-9]{6}$/.test(record.bankIfsc)) {
+    record.bankIfsc = `${record.bankIfsc.slice(0, 4)}1${record.bankIfsc.slice(5)}`;
+  } else if (draft.desiredClaim !== "31" && record.dateOfExit && record.employerApprovedExit) {
+    record.employerApprovedExit = false;
+  } else if (draft.desiredClaim === "31") {
+    const required = ADVANCE_MIN_SERVICE_YEARS[draft.advanceCategory ?? "medical"];
+    if (record.serviceYears >= required) record.serviceYears = Math.max(0, required - 1);
+  }
 }
 
 export function generateSyntheticCitizens(count: number, seed: number, now: Date = new Date()): CitizenProfile[] {
@@ -183,17 +227,22 @@ export function generateSyntheticCitizens(count: number, seed: number, now: Date
       mobile,
     };
 
-    citizens.push({
+    const draft: CitizenProfile = {
       id: `synth-${i}`,
       label: `Profile ${i + 1}`,
       displayName: nameOnEpfo,
-      failureMode: describeFailureMode(record, desiredClaim, advanceCategory),
+      failureMode: "", // computed below, after any singleton top-up
       uan,
       password: "demo123",
       desiredClaim,
       advanceCategory,
       record,
-    });
+    };
+
+    boostToSecondIssueIfSingleton(draft, now);
+    draft.failureMode = describeFailureMode(draft.record, desiredClaim, advanceCategory);
+
+    citizens.push(draft);
   }
 
   return citizens;

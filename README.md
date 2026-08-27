@@ -19,11 +19,15 @@ every account: `demo123`.
 
   | UAN | Profile | Failure mode |
   |---|---|---|
-  | `100200300401` | Citizen A | Name mismatch (bank vs EPFO record) |
-  | `100200300402` | Citizen B | Invalid IFSC |
-  | `100200300403` | Citizen C | Employer hasn't approved exit |
-  | `100200300404` | Citizen D | KYC incomplete (Aadhaar not verified) |
+  | `100200300401` | Citizen A | Name mismatch on both Aadhaar and bank (2 issues) |
+  | `100200300402` | Citizen B | Invalid IFSC + bank KYC not seeded (2 issues) |
+  | `100200300403` | Citizen C | Employer hasn't approved exit + bank KYC not seeded (2 issues) |
+  | `100200300404` | Citizen D | Aadhaar KYC incomplete + bank KYC not seeded (2 issues) |
   | `100200300405` | Citizen E | Clean case — passes pre-flight |
+
+  4 of the 5 featured profiles surface multiple simultaneous issues on
+  purpose — the pre-flight check lists every issue it finds, not just one,
+  and each gets its own "mark as fixed" simulate toggle.
 
 - **45 procedurally generated profiles** in [`src/lib/citizen-generator.ts`](./src/lib/citizen-generator.ts) —
   a seeded PRNG rolls random name/date/KYC combinations (and independently rolls name mismatches,
