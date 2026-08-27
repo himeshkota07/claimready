@@ -4,8 +4,10 @@
 // invalid IFSCs, missing KYC, and unapproved exits are rolled per record,
 // not individually authored. All names/numbers are fictional.
 
-import { CitizenProfile, EpfoRecord, ClaimForm } from "./types";
+import { AdvanceCategory, CitizenProfile, EpfoRecord, ClaimForm } from "./types";
 import { randomIfsc } from "./bank-lookup";
+
+const ADVANCE_CATEGORIES: AdvanceCategory[] = ["medical", "education", "marriage", "housing", "home_loan"];
 
 // mulberry32 — small, fast, deterministic PRNG from a numeric seed.
 function mulberry32(seed: number) {
@@ -76,14 +78,33 @@ function mangleName(rng: () => number, name: string): string {
   return [...parts.slice(0, -1), typoed].join(" ");
 }
 
-function describeFailureMode(record: EpfoRecord): string {
+const ADVANCE_MIN_SERVICE_YEARS: Record<AdvanceCategory, number> = {
+  medical: 0,
+  education: 7,
+  marriage: 7,
+  housing: 5,
+  home_loan: 10,
+};
+
+function describeFailureMode(
+  record: EpfoRecord,
+  desiredClaim: ClaimForm,
+  advanceCategory: AdvanceCategory | undefined
+): string {
   const modes: string[] = [];
   if (record.nameOnAadhaar !== record.nameOnEpfo || record.nameOnBank !== record.nameOnEpfo) {
     modes.push("name mismatch");
   }
   if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(record.bankIfsc)) modes.push("invalid IFSC");
   if (!record.aadhaarLinked || !record.aadhaarVerified) modes.push("KYC incomplete");
-  if (!record.dateOfExit || !record.employerApprovedExit) modes.push("exit not approved");
+  // A Form 31 advance is claimed while still employed — no exit date needed,
+  // so this only applies to final settlement / pension withdrawal.
+  if (desiredClaim !== "31" && (!record.dateOfExit || !record.employerApprovedExit)) {
+    modes.push("exit not approved");
+  }
+  if (desiredClaim === "31" && record.serviceYears < ADVANCE_MIN_SERVICE_YEARS[advanceCategory ?? "medical"]) {
+    modes.push("insufficient service for advance category");
+  }
   if (!record.bankSeeded) modes.push("bank KYC not seeded");
   if (modes.length === 0) return "Clean case — passes pre-flight";
   return modes.map((m) => m[0].toUpperCase() + m.slice(1)).join(", ");
@@ -103,16 +124,28 @@ export function generateSyntheticCitizens(count: number, seed: number, now: Date
     const ageYears = 24 + Math.floor(rng() * 35); // 24-58
     const dob = yearsAgo(ageYears, now);
 
-    const serviceYears = Math.round((1 + rng() * 18) * 10) / 10;
-    const dateOfJoining = yearsAgo(Math.min(serviceYears + 1, ageYears - 18), now);
+    // Join date first — bounded by working age (18+) and a realistic career
+    // span cap — then everything else (exit date, service years) derives
+    // from it, instead of being rolled independently and risking a record
+    // that's internally impossible (e.g. 15 years of service claimed only
+    // 6 years after the recorded joining date).
+    const maxCareerYears = Math.min(ageYears - 18, 20);
+    const joiningYearsAgo = 1 + rng() * Math.max(0, maxCareerYears - 1);
+    const dateOfJoining = yearsAgo(joiningYearsAgo, now);
 
     const hasExited = rng() < 0.65;
     let dateOfExit: string | null = null;
     if (hasExited) {
-      const monthsAgoExit = Math.floor(rng() * 14); // 0-13 months ago, some inside the 2-month wait
+      // 0-13 months ago (some inside the 2-month wait), clamped so exit
+      // never lands before the join date.
+      const maxMonthsAgo = Math.max(1, Math.floor(joiningYearsAgo * 12) - 1);
+      const monthsAgoExit = Math.min(Math.floor(rng() * 14), maxMonthsAgo);
       dateOfExit = dateFromDaysAgo(monthsAgoExit * 30, now);
     }
     const employerApprovedExit = hasExited ? rng() < 0.75 : false;
+
+    const serviceEndMs = (dateOfExit ? new Date(dateOfExit) : now).getTime();
+    const serviceYears = Math.round(((serviceEndMs - new Date(dateOfJoining).getTime()) / (365.25 * 86400000)) * 10) / 10;
 
     const aadhaarLinked = rng() < 0.85;
     const aadhaarVerified = aadhaarLinked && rng() < 0.9;
@@ -124,11 +157,11 @@ export function generateSyntheticCitizens(count: number, seed: number, now: Date
 
     const { ifsc } = randomIfsc(rng, rng() < 0.88);
     const accountNumber = pad(rng() * 99999999999, 11);
-    const mobile = `98${pad(rng() * 1000000, 6)}XXXX`;
+    const mobile = `${pad(rng() * 10000, 4)}XXXX${pad(rng() * 100, 2)}`;
 
     const desiredClaimRoll = rng();
-    const desiredClaim: ClaimForm | "unemployment_advance" =
-      desiredClaimRoll < 0.55 ? "19" : desiredClaimRoll < 0.8 ? "31" : "10C";
+    const desiredClaim: ClaimForm = desiredClaimRoll < 0.55 ? "19" : desiredClaimRoll < 0.8 ? "31" : "10C";
+    const advanceCategory: AdvanceCategory | undefined = desiredClaim === "31" ? pick(rng, ADVANCE_CATEGORIES) : undefined;
 
     const record: EpfoRecord = {
       uan,
@@ -154,10 +187,11 @@ export function generateSyntheticCitizens(count: number, seed: number, now: Date
       id: `synth-${i}`,
       label: `Profile ${i + 1}`,
       displayName: nameOnEpfo,
-      failureMode: describeFailureMode(record),
+      failureMode: describeFailureMode(record, desiredClaim, advanceCategory),
       uan,
       password: "demo123",
       desiredClaim,
+      advanceCategory,
       record,
     });
   }

@@ -97,6 +97,7 @@ const FLAGSHIP_CITIZENS: CitizenProfile[] = [
     uan: "100200300404",
     password: "demo123",
     desiredClaim: "31",
+    advanceCategory: "medical",
     record: {
       uan: "100200300404",
       nameOnEpfo: "Priya Nair",

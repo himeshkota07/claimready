@@ -5,6 +5,10 @@
 
 export type ClaimForm = "19" | "10C" | "31";
 
+// Form 31 (partial/advance withdrawal) eligibility depends on which advance
+// category is being claimed — each has its own minimum-service threshold.
+export type AdvanceCategory = "medical" | "education" | "marriage" | "housing" | "home_loan";
+
 export type Severity = "red" | "amber" | "green";
 
 export type WhoFixes = "you" | "employer" | "field_office";
@@ -37,7 +41,9 @@ export interface CitizenProfile {
   uan: string;
   password: string; // mock login only
   record: EpfoRecord;
-  desiredClaim: ClaimForm | "unemployment_advance";
+  desiredClaim: ClaimForm;
+  // Only meaningful when desiredClaim === "31" — which advance is being claimed.
+  advanceCategory?: AdvanceCategory;
 }
 
 export interface ValidationIssue {

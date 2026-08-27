@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { IntakeClassification, ExtractedDocFields } from "@/lib/ai";
+import { getCitizenByUan } from "@/lib/citizens";
 
 const FORM_LABELS: Record<string, string> = {
   "19": "Form 19 — Final PF settlement",
@@ -207,6 +208,22 @@ export default function GuidedClaimPage() {
           <p className="mt-3 text-xs text-slate-400">
             {extraction.source === "openai" ? "Extracted by OpenAI vision model" : "Offline fallback mock extraction (no API key configured)"}
           </p>
+
+          {extraction.uan && getCitizenByUan(extraction.uan) && (
+            <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-3">
+              <p className="text-sm text-emerald-900">
+                This UAN matches a record in the mock database (
+                {getCitizenByUan(extraction.uan)!.displayName}) — skip the login and jump straight
+                to its pre-flight status.
+              </p>
+              <Link
+                href={`/preflight/${extraction.uan}`}
+                className="mt-2 inline-block rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
+              >
+                View pre-flight status &rarr;
+              </Link>
+            </div>
+          )}
         </div>
       )}
 
@@ -218,7 +235,7 @@ export default function GuidedClaimPage() {
               : "Next, run a pre-flight check to make sure this claim won't bounce back before you submit it."}
           </p>
           <Link
-            href="/preflight"
+            href={extraction?.uan ? `/preflight?uan=${extraction.uan}` : "/preflight"}
             className="mt-3 inline-block rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
           >
             Run pre-flight check &rarr;

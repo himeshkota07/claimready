@@ -1,14 +1,25 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CITIZENS, FEATURED_UANS, searchCitizens } from "@/lib/citizens";
 
 const FEATURED = FEATURED_UANS.map((uan) => CITIZENS.find((c) => c.uan === uan)!);
 
 export default function PreflightLoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <PreflightLoginForm />
+    </Suspense>
+  );
+}
+
+function PreflightLoginForm() {
   const router = useRouter();
-  const [uan, setUan] = useState("");
+  const searchParams = useSearchParams();
+  // Carried over from /claim when a UAN was extracted from an uploaded
+  // document — the login field arrives prefilled instead of blank.
+  const [uan, setUan] = useState(() => searchParams.get("uan") ?? "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -43,6 +54,12 @@ export default function PreflightLoginPage() {
         are collected or stored anywhere. Every account below uses password{" "}
         <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">demo123</code>.
       </p>
+      {searchParams.get("uan") && (
+        <p className="mt-2 rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-800">
+          UAN prefilled from the document you uploaded on the guided-claim page — just add the
+          password.
+        </p>
+      )}
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <div>

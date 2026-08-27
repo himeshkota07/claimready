@@ -50,6 +50,59 @@ function tokenSimilarity(a: string, b: string): number {
   return Math.max(0, 1 - dist / maxLen);
 }
 
+// Best-possible one-to-one pairing of shorter's tokens into longer's slots
+// (each longer token matched to at most one shorter token, or left
+// unmatched — contributing 0). Exhaustive search: name token counts are
+// tiny (2-5 in practice) so this is instant, and it's the thing that makes
+// the score correct — a greedy left-to-right pick can lock in a mediocre
+// match early and miss a better pairing later in the list (confirmed: it
+// mismatched real name pairs during testing, e.g. picking a token because
+// it was the least-bad option scanned so far, not the best one available
+// overall). Falls back to a fast greedy pass above a size threshold where
+// factorial blowup would matter — no real name gets close to that.
+const EXHAUSTIVE_TOKEN_LIMIT = 8;
+
+function bestGreedyMatching(longer: string[], shorter: string[]): number {
+  const used = new Array(shorter.length).fill(false);
+  let total = 0;
+  for (const tokenL of longer) {
+    let best = 0;
+    let bestIdx = -1;
+    shorter.forEach((tokenS, idx) => {
+      if (used[idx]) return;
+      const sim = tokenSimilarity(tokenL, tokenS);
+      if (sim > best) {
+        best = sim;
+        bestIdx = idx;
+      }
+    });
+    if (bestIdx >= 0 && best > 0.5) used[bestIdx] = true;
+    total += best;
+  }
+  return total;
+}
+
+function bestExhaustiveMatching(longer: string[], shorter: string[]): number {
+  const usedShorter = new Array(shorter.length).fill(false);
+
+  function rec(i: number): number {
+    if (i === longer.length) return 0;
+    let best = rec(i + 1); // leave longer[i] unmatched
+    for (let j = 0; j < shorter.length; j++) {
+      if (usedShorter[j]) continue;
+      const sim = tokenSimilarity(longer[i], shorter[j]);
+      if (sim <= 0) continue;
+      usedShorter[j] = true;
+      const candidate = sim + rec(i + 1);
+      if (candidate > best) best = candidate;
+      usedShorter[j] = false;
+    }
+    return best;
+  }
+
+  return rec(0);
+}
+
 /**
  * Returns a 0-100 similarity score between two names, tolerant of
  * initials, dropped middle names, and word-order swaps.
@@ -62,23 +115,10 @@ export function nameMatchScore(nameA: string, nameB: string): number {
   const longer = tokensA.length >= tokensB.length ? tokensA : tokensB;
   const shorter = tokensA.length >= tokensB.length ? tokensB : tokensA;
 
-  const used = new Set<number>();
-  let totalScore = 0;
-
-  for (const tokenL of longer) {
-    let best = 0;
-    let bestIdx = -1;
-    shorter.forEach((tokenS, idx) => {
-      if (used.has(idx)) return;
-      const sim = tokenSimilarity(tokenL, tokenS);
-      if (sim > best) {
-        best = sim;
-        bestIdx = idx;
-      }
-    });
-    if (bestIdx >= 0 && best > 0.5) used.add(bestIdx);
-    totalScore += best;
-  }
+  const totalScore =
+    longer.length <= EXHAUSTIVE_TOKEN_LIMIT
+      ? bestExhaustiveMatching(longer, shorter)
+      : bestGreedyMatching(longer, shorter);
 
   const score = (totalScore / longer.length) * 100;
   return Math.round(Math.max(0, Math.min(100, score)));

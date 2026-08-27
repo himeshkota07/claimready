@@ -2,18 +2,23 @@
 // Eligibility thresholds are simplified from publicly published EPF
 // Scheme 1952 / EPS 1995 provisions (Form 19 / 10C / 31). See /mocked.
 
-import { CitizenProfile, ClaimForm, PreflightResult, Severity, ValidationIssue } from "./types";
+import { AdvanceCategory, CitizenProfile, ClaimForm, PreflightResult, Severity, ValidationIssue } from "./types";
 import { nameMatchScore, nameMatchSeverity } from "./name-match";
 
 const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
 const UAN_REGEX = /^\d{12}$/;
 
+// Day-aware, matching ageAt()'s pattern below — a naive calendar-field
+// subtraction (year/month only) overstates elapsed time near month
+// boundaries: exit on the 31st, checked on the 1st of the month after next,
+// naively counts as "2 months" when only ~1 month has actually passed. That
+// was a real bug here — the 2-month unemployment wait is the single most
+// load-bearing rule in this product, so getting it day-precise matters.
 function monthsSince(dateIso: string, reference: Date): number {
   const d = new Date(dateIso);
-  return (
-    (reference.getFullYear() - d.getFullYear()) * 12 +
-    (reference.getMonth() - d.getMonth())
-  );
+  let months = (reference.getFullYear() - d.getFullYear()) * 12 + (reference.getMonth() - d.getMonth());
+  if (reference.getDate() < d.getDate()) months--;
+  return Math.max(0, months);
 }
 
 function ageAt(dob: string, reference: Date): number {
@@ -37,6 +42,50 @@ function worstOf(issues: ValidationIssue[]): Severity {
   );
 }
 
+// Minimum contributory service, in years, for each Form 31 advance category
+// — simplified from the publicly published EPF Scheme 1952 advance
+// provisions. See /mocked: not verified against internal EPFO circulars.
+const ADVANCE_MIN_SERVICE_YEARS: Record<AdvanceCategory, number> = {
+  medical: 0,
+  education: 7,
+  marriage: 7,
+  housing: 5,
+  home_loan: 10,
+};
+
+const ADVANCE_CATEGORY_LABELS: Record<AdvanceCategory, string> = {
+  medical: "medical treatment",
+  education: "education",
+  marriage: "marriage",
+  housing: "housing (purchase/construction)",
+  home_loan: "home loan repayment",
+};
+
+function determineAdvanceEligibility(citizen: CitizenProfile): {
+  form: ClaimForm | null;
+  reasoning: string;
+} {
+  const category = citizen.advanceCategory ?? "medical";
+  const required = ADVANCE_MIN_SERVICE_YEARS[category];
+  const categoryLabel = ADVANCE_CATEGORY_LABELS[category];
+  const serviceYears = citizen.record.serviceYears;
+
+  if (serviceYears < required) {
+    return {
+      form: null,
+      reasoning: `Requested as a ${categoryLabel} advance (Form 31). This category normally needs at least ${required} years of contributory service — the record shows ${serviceYears} years, so it falls short by about ${Math.round((required - serviceYears) * 10) / 10} year(s).`,
+    };
+  }
+
+  return {
+    form: "31",
+    reasoning:
+      required === 0
+        ? `Eligible for a ${categoryLabel} advance (Form 31) — this category has no minimum service requirement.`
+        : `Eligible for a ${categoryLabel} advance (Form 31) — contributory service (${serviceYears} years) meets the ${required}-year minimum for this category.`,
+  };
+}
+
 export function determineEligibleForm(citizen: CitizenProfile, now: Date): {
   form: ClaimForm | null;
   reasoning: string;
@@ -44,11 +93,7 @@ export function determineEligibleForm(citizen: CitizenProfile, now: Date): {
   const { record } = citizen;
 
   if (citizen.desiredClaim === "31") {
-    return {
-      form: "31",
-      reasoning:
-        "Requested as a partial/advance withdrawal (Form 31) — service length and category-specific rules apply, checked separately from final settlement.",
-    };
+    return determineAdvanceEligibility(citizen);
   }
 
   const age = ageAt(record.dob, now);
@@ -117,10 +162,10 @@ export function runPreflightCheck(citizen: CitizenProfile, now: Date = new Date(
             ]
           : [
               "Double check for spelling differences, initials, or a dropped middle name",
-              "If it's a minor variation (e.g. initials vs full name), attach a supporting ID as backup — many field offices accept this without a formal correction",
+              "A minor variation (e.g. initials vs full name) is lower-risk than a full mismatch, but the only reliably safe fix is still a formal correction — treat 'attach a backup ID instead' as a possible shortcut to ask your field office about, not a guarantee",
             ],
       docsNeeded: nameSeverity === "red" ? ["Joint Declaration form", "Aadhaar copy", "PAN or another photo ID"] : ["Any government photo ID showing the full name"],
-      estTime: nameSeverity === "red" ? "5-10 working days" : "No delay if backup ID is attached",
+      estTime: nameSeverity === "red" ? "5-10 working days" : "Usually no delay, but not guaranteed — ask your field office if unsure",
     });
   }
 
@@ -209,7 +254,12 @@ export function runPreflightCheck(citizen: CitizenProfile, now: Date = new Date(
   }
 
   // --- Employer exit approval / date of exit ---
-  if (!record.dateOfExit || !record.employerApprovedExit) {
+  // Only applies to final settlement (Form 19) / pension withdrawal (Form
+  // 10C) — a Form 31 advance is claimed while still employed, so requiring
+  // an exit date here was a bug: it told advance applicants to get their
+  // employer to mark an exit they don't need. determineEligibleForm() above
+  // already knew this; this check just didn't agree with it.
+  if (citizen.desiredClaim !== "31" && (!record.dateOfExit || !record.employerApprovedExit)) {
     issues.push({
       id: "exit-not-approved",
       severity: "red",
