@@ -373,6 +373,93 @@ export async function classifyIntake(
   }
 }
 
+// --- Grievance letter drafting (EPFiGMS) ---
+export interface GrievanceLetterResult {
+  subject: string;
+  body: string;
+}
+
+function grievanceFallback(rawText: string, plainReason: string): GrievanceLetterResult {
+  return {
+    subject: "Grievance regarding PF claim rejection — [Claim ID]",
+    body:
+      `To,\n` +
+      `The Regional Provident Fund Commissioner\n` +
+      `[Your EPFO Regional Office]\n\n` +
+      `Subject: Grievance regarding rejection of PF claim — UAN [Your UAN], Claim ID [Claim ID]\n\n` +
+      `Respected Sir/Madam,\n\n` +
+      `I am writing to raise a grievance regarding my Provident Fund claim, which was rejected or ` +
+      `returned with the stated reason: "${rawText}".\n\n` +
+      `${plainReason}\n\n` +
+      `I request that my claim be reviewed and reprocessed, or that specific guidance be provided on ` +
+      `the exact correction required, given the reason cited above. I have attached supporting ` +
+      `documents relevant to this matter and would appreciate a response within the standard ` +
+      `grievance redressal timeline.\n\n` +
+      `Thank you for your attention to this matter.\n\n` +
+      `Yours faithfully,\n` +
+      `[Your Name]\n` +
+      `UAN: [Your UAN]\n` +
+      `Registered Mobile: [Your Mobile Number]\n` +
+      `Date: [Date]`,
+  };
+}
+
+export async function draftGrievanceLetter(
+  rawText: string,
+  plainReason: string,
+  language: Language
+): Promise<GrievanceLetterResult & { source: "openai" | "fallback" }> {
+  if (!client) {
+    return { ...grievanceFallback(rawText, plainReason), source: "fallback" };
+  }
+
+  try {
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You draft formal EPFiGMS grievance letters for Indian EPFO Provident Fund claim issues. " +
+            "Address it to 'The Regional Provident Fund Commissioner'. Use bracketed placeholders for " +
+            "personal details you don't have: [Your Name], [Your UAN], [Claim ID], [Your EPFO Regional " +
+            "Office], [Your Mobile Number], [Date]. Reference the specific rejection reason given. Be " +
+            "concise, formal, and factual — do not invent facts about the person's situation beyond " +
+            `what's given. Respond in ${LANGUAGE_NAMES[language]}, in the structured JSON schema provided.`,
+        },
+        {
+          role: "user",
+          content: `Rejection reason: "${rawText}"\n\nPlain-language explanation: ${plainReason}`,
+        },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "grievance_letter",
+          strict: true,
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              subject: { type: "string" },
+              body: { type: "string" },
+            },
+            required: ["subject", "body"],
+          },
+        },
+      },
+    });
+
+    const content = completion.choices[0]?.message?.content;
+    if (!content) throw new Error("Empty response from model");
+    const parsed = JSON.parse(content) as GrievanceLetterResult;
+    return { ...parsed, source: "openai" };
+  } catch (err) {
+    console.error("OpenAI grievance drafting failed, using fallback:", err);
+    return { ...grievanceFallback(rawText, plainReason), source: "fallback" };
+  }
+}
+
 export interface ExtractedDocFields {
   documentType: "uan_card" | "passbook" | "bank_statement" | "unknown";
   name: string | null;
