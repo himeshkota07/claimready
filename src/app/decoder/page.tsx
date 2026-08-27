@@ -121,7 +121,7 @@ export default function DecoderPage() {
                 setRawText(s.raw);
                 handleDecode(s.raw);
               }}
-              className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs text-slate-700 transition hover:border-blue-400 hover:text-blue-700"
+              className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs text-slate-700 transition hover:border-brand-400 hover:text-brand-700"
             >
               {s.raw}
             </button>
@@ -129,7 +129,7 @@ export default function DecoderPage() {
         </div>
       </div>
 
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mt-6 rounded-md border border-slate-200 bg-white p-5">
         <label htmlFor="rawText" className="block text-sm font-medium text-slate-700">
           Rejection reason
         </label>
@@ -139,7 +139,7 @@ export default function DecoderPage() {
           onChange={(e) => setRawText(e.target.value)}
           placeholder='e.g. "Name not matching as per records"'
           rows={3}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         />
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
@@ -151,7 +151,7 @@ export default function DecoderPage() {
                 aria-pressed={language === l.code}
                 className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                   language === l.code
-                    ? "bg-blue-700 text-white"
+                    ? "bg-brand-700 text-white"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
@@ -162,7 +162,7 @@ export default function DecoderPage() {
           <button
             onClick={() => handleDecode(rawText)}
             disabled={loading || !rawText.trim()}
-            className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? "Decoding..." : "Decode"}
           </button>
@@ -173,7 +173,7 @@ export default function DecoderPage() {
 
       {result && (
         <div
-          className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+          className="mt-6 rounded-md border border-slate-200 bg-white p-5"
           lang={result.source === "openai" ? result.language : "en"}
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -192,7 +192,7 @@ export default function DecoderPage() {
 
           <p className="mt-3 text-slate-800">{result.plainReason}</p>
 
-          <p className="mt-4 inline-block rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+          <p className="mt-4 inline-block rounded-full border border-brand-200 bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
             {WHO_LABELS[result.whoMustFix]}
           </p>
 
@@ -235,7 +235,7 @@ export default function DecoderPage() {
             <button
               onClick={handleDraftGrievance}
               disabled={grievanceLoading}
-              className="mt-2 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-blue-400 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-2 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-brand-400 hover:text-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {grievanceLoading ? "Drafting..." : "Draft a grievance letter"}
             </button>
@@ -250,7 +250,7 @@ export default function DecoderPage() {
                   </span>
                   <button
                     onClick={handleCopyGrievance}
-                    className="rounded-md bg-blue-700 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-800"
+                    className="rounded-md bg-brand-700 px-3 py-1 text-xs font-semibold text-white hover:bg-brand-800"
                   >
                     {copied ? "Copied!" : "Copy letter"}
                   </button>

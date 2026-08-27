@@ -13,7 +13,7 @@ const WHO_LABELS: Record<WhoFixes, string> = {
 };
 
 const WHO_STYLES: Record<WhoFixes, string> = {
-  you: "bg-blue-50 text-blue-700 border-blue-200",
+  you: "bg-brand-50 text-brand-700 border-brand-200",
   employer: "bg-purple-50 text-purple-700 border-purple-200",
   field_office: "bg-slate-100 text-slate-700 border-slate-300",
 };
@@ -54,7 +54,7 @@ export default async function PreflightResultPage({
         </div>
       </div>
 
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mt-6 rounded-md border border-slate-200 bg-white p-5">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
           Which form applies
         </h2>
@@ -68,7 +68,7 @@ export default async function PreflightResultPage({
         <p className="mt-1 text-sm text-slate-600">{result.formReasoning}</p>
       </div>
 
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mt-6 rounded-md border border-slate-200 bg-white p-5">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
           Name match, deterministic score
         </h2>
@@ -90,7 +90,7 @@ export default async function PreflightResultPage({
         </h2>
 
         {!hasIssues && (
-          <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-5">
+          <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-5">
             <p className="text-emerald-800">
               This record passes every check ClaimReady runs. You can proceed straight to filing.
             </p>
@@ -108,7 +108,7 @@ export default async function PreflightResultPage({
             .slice()
             .sort((a, b) => (a.severity === "red" ? -1 : b.severity === "red" ? 1 : 0))
             .map((issue) => (
-              <div key={issue.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div key={issue.id} className="rounded-md border border-slate-200 bg-white p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <StatusPill severity={issue.severity} />
                   <span

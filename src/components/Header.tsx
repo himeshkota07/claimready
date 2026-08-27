@@ -10,18 +10,20 @@ const NAV_LINKS = [
 
 export function Header() {
   return (
-    <header className="print:hidden border-b border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+    <header className="print:hidden border-b-4 border-brand-700 bg-white">
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-y-2 px-4 py-4">
         <Link href="/" className="flex items-baseline gap-2">
-          <span className="text-lg font-bold text-slate-900">ClaimReady</span>
-          <span className="hidden text-xs text-slate-500 sm:inline">for EPFO PF claims</span>
+          <span className="text-xl font-bold tracking-tight text-brand-900">ClaimReady</span>
+          <span className="hidden text-xs uppercase tracking-wide text-slate-500 sm:inline">
+            EPFO PF Claim Pre-Flight Service
+          </span>
         </Link>
-        <nav className="flex flex-wrap items-center gap-1 text-sm">
+        <nav className="flex flex-wrap items-center gap-1 text-sm" aria-label="Primary">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="rounded-md px-2 py-1.5 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+              className="rounded px-2.5 py-1.5 font-medium text-brand-800 transition hover:bg-brand-50 hover:text-brand-900"
             >
               {link.label}
             </Link>

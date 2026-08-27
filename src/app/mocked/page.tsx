@@ -3,7 +3,7 @@ import { aiIsConfigured } from "@/lib/ai";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="mt-6 rounded-md border border-slate-200 bg-white p-5">
       <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
       <div className="mt-2 text-sm text-slate-700">{children}</div>
     </div>

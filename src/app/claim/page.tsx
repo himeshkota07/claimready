@@ -97,7 +97,7 @@ export default function GuidedClaimPage() {
         which claim form applies and start prefilling it from any document you upload.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <form onSubmit={handleSubmit} className="mt-6 space-y-4 rounded-md border border-slate-200 bg-white p-5">
         <div>
           <label htmlFor="situation" className="block text-sm font-medium text-slate-700">
             What&apos;s your situation?
@@ -108,7 +108,7 @@ export default function GuidedClaimPage() {
             onChange={(e) => setText(e.target.value)}
             rows={4}
             placeholder={`e.g. "I left my job two months ago and want to withdraw my full PF balance" or "I need money for my daughter's wedding"`}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
 
@@ -126,15 +126,15 @@ export default function GuidedClaimPage() {
           <p className="mt-1 text-xs text-slate-400">Mock documents only — nothing here should be a real ID.</p>
           <p className="mt-1 text-xs text-slate-500">
             Don&apos;t have one handy? Try a sample:{" "}
-            <a href="/api/mock-documents/100200300401/uan-card.png" download className="text-blue-700 underline">
+            <a href="/api/mock-documents/100200300401/uan-card.png" download className="text-brand-700 underline">
               UAN card
             </a>{" "}
             or{" "}
-            <a href="/api/mock-documents/100200300405/passbook.png" download className="text-blue-700 underline">
+            <a href="/api/mock-documents/100200300405/passbook.png" download className="text-brand-700 underline">
               passbook
             </a>
             . Both are generated on the fly from the mock database (synthetic, watermarked) — or{" "}
-            <Link href="/preflight" className="text-blue-700 underline">
+            <Link href="/preflight" className="text-brand-700 underline">
               browse all 50 mock profiles
             </Link>{" "}
             and grab documents for any of them.
@@ -146,21 +146,21 @@ export default function GuidedClaimPage() {
         <button
           type="submit"
           disabled={loading || !text.trim()}
-          className="w-full rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? "Working it out..." : "Continue"}
         </button>
       </form>
 
       {intake && (
-        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mt-6 rounded-md border border-slate-200 bg-white p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Based on what you told us
           </p>
           <p className="mt-1 text-lg font-semibold text-slate-900">{FORM_LABELS[intake.formGuess]}</p>
           <p className="mt-1 text-sm text-slate-600">{intake.reasoning}</p>
           {intake.detectedCategory && (
-            <p className="mt-2 inline-block rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+            <p className="mt-2 inline-block rounded-full border border-brand-200 bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
               {intake.detectedCategory}
             </p>
           )}
@@ -179,7 +179,7 @@ export default function GuidedClaimPage() {
                     key={prompt}
                     onClick={() => handleClarify(prompt)}
                     disabled={loading}
-                    className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs text-slate-700 transition hover:border-blue-400 hover:text-blue-700 disabled:opacity-50"
+                    className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs text-slate-700 transition hover:border-brand-400 hover:text-brand-700 disabled:opacity-50"
                   >
                     {prompt}
                   </button>
@@ -191,7 +191,7 @@ export default function GuidedClaimPage() {
       )}
 
       {extraction && (
-        <div className="mt-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mt-4 rounded-md border border-slate-200 bg-white p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Prefilled from your document
           </p>
@@ -228,15 +228,15 @@ export default function GuidedClaimPage() {
       )}
 
       {intake && (
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-5">
-          <p className="text-sm text-blue-900">
+        <div className="mt-6 rounded-md border border-brand-200 bg-brand-50 p-5">
+          <p className="text-sm text-brand-900">
             {intake.formGuess === "unclear"
               ? "Pick one of the options above for a specific form match, or run a pre-flight check now — it works off your actual EPFO record, so it doesn't need a guessed form type to check your eligibility and flag issues."
               : "Next, run a pre-flight check to make sure this claim won't bounce back before you submit it."}
           </p>
           <Link
             href={extraction?.uan ? `/preflight?uan=${extraction.uan}` : "/preflight"}
-            className="mt-3 inline-block rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+            className="mt-3 inline-block rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800"
           >
             Run pre-flight check &rarr;
           </Link>

@@ -28,7 +28,7 @@ export default function InsightsPage() {
           const count = stats.bySeverity[sev];
           const pct = Math.round((count / stats.total) * 100);
           return (
-            <div key={sev} className={`rounded-xl border p-4 ${meta.ring}`}>
+            <div key={sev} className={`rounded-md border p-4 ${meta.ring}`}>
               <div className="flex items-center gap-2">
                 <span className={`h-2.5 w-2.5 rounded-full ${meta.dot}`} aria-hidden="true" />
                 <span className={`text-xs font-medium uppercase tracking-wide ${meta.text}`}>{meta.label}</span>
@@ -40,7 +40,7 @@ export default function InsightsPage() {
         })}
       </div>
 
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mt-6 rounded-md border border-slate-200 bg-white p-5">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
           What&apos;s actually causing it
         </h2>
@@ -59,7 +59,7 @@ export default function InsightsPage() {
                 <div className="mt-1 flex items-center gap-2">
                   <div className="h-5 flex-1 rounded-sm bg-slate-100">
                     <div
-                      className="h-5 rounded-r-sm bg-blue-700"
+                      className="h-5 rounded-r-sm bg-brand-700"
                       style={{ width: `${widthPct}%` }}
                     />
                   </div>
@@ -73,8 +73,8 @@ export default function InsightsPage() {
         </div>
       </div>
 
-      <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-5">
-        <p className="text-sm text-blue-900">
+      <div className="mt-6 rounded-md border border-brand-200 bg-brand-50 p-5">
+        <p className="text-sm text-brand-900">
           <strong>{rejectedPct}%</strong> of this mock database would be rejected or flagged today —
           well above EPFO&apos;s own published combined return/rejection rate (~21.6%, cited in the
           project plan). That&apos;s deliberate, not a modeling error: the generator rolls several

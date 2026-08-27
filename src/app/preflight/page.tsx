@@ -66,13 +66,13 @@ export default function PreflightLoginPage() {
         <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">demo123</code>.
       </p>
       {prefilledFromDoc && (
-        <p className="mt-2 rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-800">
+        <p className="mt-2 rounded-md bg-brand-50 px-3 py-2 text-sm text-brand-800">
           UAN prefilled from the document you uploaded on the guided-claim page — just add the
           password.
         </p>
       )}
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <form onSubmit={handleSubmit} className="mt-6 space-y-4 rounded-md border border-slate-200 bg-white p-6">
         <div>
           <label htmlFor="uan" className="block text-sm font-medium text-slate-700">
             UAN
@@ -82,7 +82,7 @@ export default function PreflightLoginPage() {
             value={uan}
             onChange={(e) => setUan(e.target.value)}
             placeholder="12-digit UAN"
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             inputMode="numeric"
           />
         </div>
@@ -96,13 +96,13 @@ export default function PreflightLoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="demo123"
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button
           type="submit"
-          className="w-full rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
+          className="w-full rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-800"
         >
           Log in and run check
         </button>
@@ -116,7 +116,7 @@ export default function PreflightLoginPage() {
             <button
               key={c.id}
               onClick={() => fillCredentials(c.uan, c.password)}
-              className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-sm transition hover:border-blue-400"
+              className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-sm transition hover:border-brand-400"
             >
               <span>
                 <span className="font-medium text-slate-900">{c.label}</span>
@@ -136,7 +136,7 @@ export default function PreflightLoginPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name or UAN..."
-          className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         />
         <div className="mt-2 max-h-80 divide-y divide-slate-100 overflow-y-auto rounded-md border border-slate-200 bg-white">
           {results.length === 0 && (
@@ -154,7 +154,7 @@ export default function PreflightLoginPage() {
                 <a
                   href={`/api/mock-documents/${c.uan}/uan-card.png`}
                   download
-                  className="text-blue-700 underline"
+                  className="text-brand-700 underline"
                   onClick={(e) => e.stopPropagation()}
                 >
                   UAN card
@@ -162,7 +162,7 @@ export default function PreflightLoginPage() {
                 <a
                   href={`/api/mock-documents/${c.uan}/passbook.png`}
                   download
-                  className="text-blue-700 underline"
+                  className="text-brand-700 underline"
                   onClick={(e) => e.stopPropagation()}
                 >
                   Passbook
