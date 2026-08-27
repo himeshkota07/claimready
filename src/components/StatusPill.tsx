@@ -17,7 +17,7 @@ export function StatusPill({ severity, label }: { severity: Severity; label?: st
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium ${STYLES[severity]}`}
     >
-      <span className="h-2 w-2 rounded-full bg-current" />
+      <span className="h-2 w-2 rounded-full bg-current" aria-hidden="true" />
       {label ?? LABELS[severity]}
     </span>
   );
