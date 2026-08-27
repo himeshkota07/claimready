@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CITIZENS, FEATURED_UANS, searchCitizens } from "@/lib/citizens";
+import { CITIZENS, FEATURED_UANS, SYNTHETIC_CITIZENS, searchCitizens } from "@/lib/citizens";
 
 const FEATURED = FEATURED_UANS.map((uan) => CITIZENS.find((c) => c.uan === uan)!);
 
@@ -161,9 +161,10 @@ function PreflightLoginForm() {
           ))}
         </div>
         <p className="mt-2 text-xs text-slate-400">
-          Click a row to fill in its login above. All {CITIZENS.length} are generated from a seeded
-          deterministic model (random name/date/KYC combinations), not individually hand-picked —
-          see <a href="/mocked" className="underline">what&apos;s real, what&apos;s mocked</a>.
+          Click a row to fill in its login above. {SYNTHETIC_CITIZENS.length} of these{" "}
+          {CITIZENS.length} are generated from a seeded deterministic model (random name/date/KYC
+          combinations); the 5 featured above are hand-authored, not generated — see{" "}
+          <a href="/mocked" className="underline">what&apos;s real, what&apos;s mocked</a>.
         </p>
       </div>
     </div>

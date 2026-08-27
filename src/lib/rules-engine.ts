@@ -285,6 +285,32 @@ export function runPreflightCheck(citizen: CitizenProfile, now: Date = new Date(
 
   // If eligibility itself fails (e.g. no exit date, waiting period), that's the top-line issue.
   const eligibilityBlocking = form === null;
+
+  // Some blocking reasons (the 2-month wait not being up yet, an advance
+  // category's service-year minimum not being met) aren't caused by any of
+  // the field checks above — no exit-date issue, no KYC issue, nothing.
+  // Without this, a citizen who hits exactly one of those could see a red
+  // "will be rejected" banner directly above an empty issues list telling
+  // them nothing needs fixing. Confirmed this actually happens via an
+  // isolated test before this fix (issues.length === 0 while overall was
+  // still "red"). If the missing/unapproved exit date is already covered by
+  // its own issue, don't duplicate — that's a real fixable item already.
+  if (eligibilityBlocking && !issues.some((i) => i.field === "date_of_exit")) {
+    issues.push({
+      id: "not-yet-eligible",
+      severity: "red",
+      field: "eligibility",
+      plainReason: reasoning,
+      whoFixes: "you",
+      steps: [
+        "This isn't a paperwork problem — it's a timing or eligibility threshold, not something to correct",
+        "Re-run this check once the condition above is met (the wait period passes, or service years increase)",
+      ],
+      docsNeeded: [],
+      estTime: "Varies — see the reasoning above",
+    });
+  }
+
   const overall: Severity = eligibilityBlocking ? "red" : worstOf(issues);
 
   return {
