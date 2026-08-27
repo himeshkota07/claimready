@@ -1,28 +1,39 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { CITIZENS, FEATURED_UANS, SYNTHETIC_CITIZENS, searchCitizens } from "@/lib/citizens";
 
 const FEATURED = FEATURED_UANS.map((uan) => CITIZENS.find((c) => c.uan === uan)!);
 
 export default function PreflightLoginPage() {
-  return (
-    <Suspense fallback={null}>
-      <PreflightLoginForm />
-    </Suspense>
-  );
-}
-
-function PreflightLoginForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  // Carried over from /claim when a UAN was extracted from an uploaded
-  // document — the login field arrives prefilled instead of blank.
-  const [uan, setUan] = useState(() => searchParams.get("uan") ?? "");
+  const [uan, setUan] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [prefilledFromDoc, setPrefilledFromDoc] = useState(false);
+
+  // Carried over from /claim when a UAN was extracted from an uploaded
+  // document. Read via window.location instead of useSearchParams(): that
+  // hook forces this whole page out of static prerendering (confirmed —
+  // the shipped HTML went from fully server-rendered to a blank shell that
+  // only fills in after JS hydrates, exactly the slow-connection regression
+  // this project's own plan calls out as unacceptable). A plain effect
+  // costs a one-frame-later fill-in instead, which is a fine trade.
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("uan");
+    if (fromUrl) {
+      // Reading window.location during the initial render (instead of an
+      // effect) would mismatch the static HTML rendered without a browser —
+      // this has to run post-hydration. That's exactly the "synchronize
+      // with an external system" case effects exist for, not a derived-
+      // state anti-pattern.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setUan(fromUrl);
+      setPrefilledFromDoc(true);
+    }
+  }, []);
 
   const results = useMemo(() => searchCitizens(query, 20), [query]);
 
@@ -54,7 +65,7 @@ function PreflightLoginForm() {
         are collected or stored anywhere. Every account below uses password{" "}
         <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">demo123</code>.
       </p>
-      {searchParams.get("uan") && (
+      {prefilledFromDoc && (
         <p className="mt-2 rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-800">
           UAN prefilled from the document you uploaded on the guided-claim page — just add the
           password.
