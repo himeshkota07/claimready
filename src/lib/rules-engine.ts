@@ -45,7 +45,7 @@ function worstOf(issues: ValidationIssue[]): Severity {
 // Minimum contributory service, in years, for each Form 31 advance category
 // — simplified from the publicly published EPF Scheme 1952 advance
 // provisions. See /mocked: not verified against internal EPFO circulars.
-const ADVANCE_MIN_SERVICE_YEARS: Record<AdvanceCategory, number> = {
+export const ADVANCE_MIN_SERVICE_YEARS: Record<AdvanceCategory, number> = {
   medical: 0,
   education: 7,
   marriage: 7,
