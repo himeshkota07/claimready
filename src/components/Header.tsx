@@ -4,12 +4,13 @@ const NAV_LINKS = [
   { href: "/preflight", label: "Pre-flight check" },
   { href: "/claim", label: "Guided claim" },
   { href: "/decoder", label: "Rejection decoder" },
+  { href: "/insights", label: "Insights" },
   { href: "/mocked", label: "What's real" },
 ];
 
 export function Header() {
   return (
-    <header className="border-b border-slate-200 bg-white">
+    <header className="print:hidden border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link href="/" className="flex items-baseline gap-2">
           <span className="text-lg font-bold text-slate-900">ClaimReady</span>
