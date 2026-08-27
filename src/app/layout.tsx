@@ -36,14 +36,21 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <main id="main-content" className="flex-1">
           {children}
         </main>
-        <footer className="border-t-2 border-brand-800 bg-brand-900 px-4 py-5 text-center text-xs text-brand-100">
-          <p className="font-semibold text-white">
+        <footer className="border-t-2 border-brand-800 bg-brand-900 px-4 py-5 text-center text-xs text-brand-100 print:border-t print:border-slate-400 print:bg-white print:text-slate-700">
+          {/* print:* overrides above matter for real reasons, not cosmetics:
+              browsers commonly default "background graphics" OFF in the print
+              dialog (Firefox always; many Chrome/OS print-driver configs too),
+              which would silently drop this navy background AND make the
+              white text invisible on the resulting white page. This is the
+              one disclaimer that must never vanish on a printout, so it's
+              pinned to dark-on-light for print regardless of that setting. */}
+          <p className="font-semibold text-white print:text-slate-900">
             ClaimReady is an independent hackathon prototype — not an EPFO product.
           </p>
           <p className="mt-1">
             Not affiliated with or endorsed by EPFO or the Government of India. All data on this
             site is synthetic. See{" "}
-            <a href="/mocked" className="underline hover:text-white">
+            <a href="/mocked" className="underline hover:text-white print:text-slate-700">
               what&apos;s real, what&apos;s mocked
             </a>
             .
