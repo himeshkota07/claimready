@@ -35,7 +35,10 @@ export default function PreflightLoginPage() {
     }
   }, []);
 
-  const results = useMemo(() => searchCitizens(query, 20), [query]);
+  // CITIZENS.length (50), not a smaller cap — the heading below promises
+  // "the full mock database" and the list is already in a scrollable,
+  // fixed-height container, so there's no reason to silently truncate it.
+  const results = useMemo(() => searchCitizens(query, CITIZENS.length), [query]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
