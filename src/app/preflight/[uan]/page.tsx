@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getCitizenByUan } from "@/lib/citizens";
 import { runPreflightCheck } from "@/lib/rules-engine";
 import { StatusPill } from "@/components/StatusPill";
+import { PrintButton } from "@/components/PrintButton";
 import { WhoFixes } from "@/lib/types";
 
 const WHO_LABELS: Record<WhoFixes, string> = {
@@ -34,6 +35,7 @@ export default async function PreflightResultPage({
 
   const result = runPreflightCheck(citizen);
   const hasIssues = result.issues.length > 0;
+  const generatedOn = new Date().toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" });
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -41,8 +43,15 @@ export default async function PreflightResultPage({
         <div>
           <p className="text-sm text-slate-500">Pre-flight result for</p>
           <h1 className="text-2xl font-bold text-slate-900">{citizen.displayName}</h1>
+          <p className="hidden text-xs text-slate-400 print:block">
+            UAN {citizen.uan} · Generated {generatedOn} · ClaimReady (independent hackathon
+            prototype, not an EPFO product — synthetic data, see claimready-epfo.vercel.app/mocked)
+          </p>
         </div>
-        <StatusPill severity={result.overall} />
+        <div className="flex items-center gap-2">
+          <StatusPill severity={result.overall} />
+          <PrintButton />
+        </div>
       </div>
 
       <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -145,7 +154,7 @@ export default async function PreflightResultPage({
         </div>
       </div>
 
-      <div className="mt-8 flex flex-wrap gap-3">
+      <div className="mt-8 flex flex-wrap gap-3 print:hidden">
         <Link href="/preflight" className="text-sm text-slate-600 underline hover:text-slate-900">
           &larr; Check a different profile
         </Link>
