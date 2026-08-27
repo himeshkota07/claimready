@@ -140,32 +140,36 @@ export function runPreflightCheck(citizen: CitizenProfile, now: Date = new Date(
   const aadhaarVsEpfo = nameMatchScore(record.nameOnAadhaar, record.nameOnEpfo);
   const bankVsEpfo = nameMatchScore(record.nameOnBank, record.nameOnEpfo);
 
-  const worstNameScore = Math.min(aadhaarVsEpfo, bankVsEpfo);
-  const nameSeverity = nameMatchSeverity(worstNameScore);
-  if (nameSeverity !== "green") {
-    const mismatchedWith =
-      aadhaarVsEpfo <= bankVsEpfo
-        ? `Aadhaar ("${record.nameOnAadhaar}")`
-        : `bank account ("${record.nameOnBank}")`;
+  // Aadhaar and bank are checked — and reported — independently. Reporting
+  // only the worse of the two meant a citizen with both fields mismatched
+  // would fix the one we mentioned, resubmit, and bounce again on the one
+  // we didn't: the exact "you wait, then find out the fix wasn't enough"
+  // loop this product exists to prevent.
+  for (const [idSuffix, fieldLabel, fieldValue, score] of [
+    ["aadhaar", "Aadhaar", record.nameOnAadhaar, aadhaarVsEpfo],
+    ["bank", "bank account", record.nameOnBank, bankVsEpfo],
+  ] as const) {
+    const severity = nameMatchSeverity(score);
+    if (severity === "green") continue;
     issues.push({
-      id: "name-mismatch",
-      severity: nameSeverity,
+      id: `name-mismatch-${idSuffix}`,
+      severity,
       field: "name",
-      plainReason: `The name on your EPFO record ("${record.nameOnEpfo}") does not closely match your ${mismatchedWith}. EPFO's own list of common rejection causes includes name mismatch as a top reason.`,
+      plainReason: `The name on your EPFO record ("${record.nameOnEpfo}") does not closely match your ${fieldLabel} ("${fieldValue}"). EPFO's own list of common rejection causes includes name mismatch as a top reason.`,
       whoFixes: "you",
       steps:
-        nameSeverity === "red"
+        severity === "red"
           ? [
               "File a Joint Declaration (with your employer) to correct the name on the EPFO record, OR",
-              "Update the name on your Aadhaar/bank record to match EPFO exactly via UIDAI/your bank",
+              `Update the name on your ${fieldLabel} record to match EPFO exactly via ${fieldLabel === "Aadhaar" ? "UIDAI" : "your bank"}`,
               "Re-run this check after the correction is reflected (usually 3-7 working days)",
             ]
           : [
               "Double check for spelling differences, initials, or a dropped middle name",
               "A minor variation (e.g. initials vs full name) is lower-risk than a full mismatch, but the only reliably safe fix is still a formal correction — treat 'attach a backup ID instead' as a possible shortcut to ask your field office about, not a guarantee",
             ],
-      docsNeeded: nameSeverity === "red" ? ["Joint Declaration form", "Aadhaar copy", "PAN or another photo ID"] : ["Any government photo ID showing the full name"],
-      estTime: nameSeverity === "red" ? "5-10 working days" : "Usually no delay, but not guaranteed — ask your field office if unsure",
+      docsNeeded: severity === "red" ? ["Joint Declaration form", "Aadhaar copy", "PAN or another photo ID"] : ["Any government photo ID showing the full name"],
+      estTime: severity === "red" ? "5-10 working days" : "Usually no delay, but not guaranteed — ask your field office if unsure",
     });
   }
 
