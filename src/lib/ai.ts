@@ -19,6 +19,19 @@ export function aiIsConfigured(): boolean {
   return client !== null;
 }
 
+// A nullable-string field in a strict JSON schema (type: ["string", "null"])
+// gives the model two ways to express "nothing here": return JSON null, or
+// return the string "null" (a valid string, and a schema-satisfying escape
+// hatch some completions reach for). Observed live in production output —
+// the UI would render a literal "null" badge otherwise, on a schema that
+// looks like it should have made that impossible.
+function normalizeNullableString(value: string | null): string | null {
+  if (value === null) return null;
+  const trimmed = value.trim().toLowerCase();
+  if (trimmed === "" || trimmed === "null" || trimmed === "none" || trimmed === "n/a") return null;
+  return value;
+}
+
 const LANGUAGE_NAMES: Record<Language, string> = {
   en: "English",
   hi: "Hindi (Devanagari script)",
@@ -366,7 +379,7 @@ export async function classifyIntake(
     const content = completion.choices[0]?.message?.content;
     if (!content) throw new Error("Empty response from model");
     const parsed = JSON.parse(content) as IntakeClassification;
-    return { ...parsed, source: "openai" };
+    return { ...parsed, detectedCategory: normalizeNullableString(parsed.detectedCategory), source: "openai" };
   } catch (err) {
     console.error("OpenAI intake classification failed, using fallback:", err);
     return { ...fallbackClassifyIntake(text), source: "fallback" };
@@ -529,7 +542,14 @@ export async function extractDocumentFields(
     const content = completion.choices[0]?.message?.content;
     if (!content) throw new Error("Empty response from model");
     const parsed = JSON.parse(content) as ExtractedDocFields;
-    return { ...parsed, source: "openai" };
+    return {
+      ...parsed,
+      name: normalizeNullableString(parsed.name),
+      uan: normalizeNullableString(parsed.uan),
+      accountNumber: normalizeNullableString(parsed.accountNumber),
+      ifsc: normalizeNullableString(parsed.ifsc),
+      source: "openai",
+    };
   } catch (err) {
     console.error("OpenAI extraction failed, using fallback:", err);
     return { ...MOCK_EXTRACTION, source: "fallback" };
